@@ -2,7 +2,7 @@
 **We are working on getting all relevant information in concise form, please come back soon!**
 <hr>
 
-# IoTpower
+# _PATH2iot_ supplemental
 Supplemental Material related to PATH2iot System with Energy modelling.
 
 # Folder structure
