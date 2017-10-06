@@ -1,0 +1,259 @@
+{
+	"nodes": [
+		{
+			"state": "active",
+			"resourceId": 115001,
+			"resourceType": "PebbleWatch",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 40.0,
+					"ram": 32.0,
+					"disk": 16.0,
+					"monetaryCost": 0.0,
+					"energyImpact": 100,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 115002,
+					"bandwidth":200,
+					"monetaryCost":0.0  
+				},
+				{
+					"downstreamNode": 65001,
+					"bandwidth":200,
+					"monetaryCost":0.0  
+				}
+			],
+			"capabilities": ["UDF:getAccelData", "RelationalOpExpression:=", "ArithmaticExpression:*", "DotExpression:Math.pow", "win:*"]
+		},
+		{
+			"state": "active",
+			"resourceId": 115002,
+			"resourceType": "iPhone",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 200.0,
+					"ram": 1000.0,
+					"disk": 4000.0,
+					"monetaryCost": 0.001,
+					"energyImpact": 0.001,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 65001,
+					"bandwidth":54000,
+					"monetaryCost":0.0 
+				}
+			],
+			"capabilities": ["sxfer:forward"]
+		},
+		{
+			"state": "active",
+			"resourceId": 65001,
+			"resourceType": "ESPer",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 800.0,
+					"ram": 4000.0,
+					"disk": 16000.0,
+					"monetaryCost": 0.001,
+					"energyImpact": 0.001,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 65002,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65003,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65004,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65005,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				}
+			],
+			"capabilities": ["UDF:persistResult", "RelationalOpExpression:*", "ArithmaticExpression:*", "DotExpression:*", "MatchRecognizeClause:*", "win:*", "CountProjectionExpression:*"]
+		},
+		{
+			"state": "disable",
+			"resourceId": 65002,
+			"resourceType": "ESPer",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 800.0,
+					"ram": 4000.0,
+					"disk": 16000.0,
+					"monetaryCost": 0.001,
+					"energyImpact": 0.001,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 65001,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65003,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65004,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65005,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				}
+			],
+			"capabilities": ["UDF:persistResult", "RelationalOpExpression:*", "ArithmaticExpression:*", "DotExpression:*", "MatchRecognizeClause:*", "win:*", "CountProjectionExpression:*"]
+		},
+		{
+			"state": "disable",
+			"resourceId": 65003,
+			"resourceType": "ESPer",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 800.0,
+					"ram": 4000.0,
+					"disk": 16000.0,
+					"monetaryCost": 0.001,
+					"energyImpact": 0.001,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 65002,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65001,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65004,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65005,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				}
+			],
+			"capabilities": ["UDF:persistResult", "RelationalOpExpression:*", "ArithmaticExpression:*", "DotExpression:*", "MatchRecognizeClause:*", "win:*", "CountProjectionExpression:*"]
+		},
+		{
+			"state": "disable",
+			"resourceId": 65004,
+			"resourceType": "ESPer",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 800.0,
+					"ram": 4000.0,
+					"disk": 16000.0,
+					"monetaryCost": 0.001,
+					"energyImpact": 0.001,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 65002,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65003,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65001,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65005,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				}
+			],
+			"capabilities": ["UDF:persistResult", "RelationalOpExpression:*", "ArithmaticExpression:*", "DotExpression:*", "MatchRecognizeClause:*", "win:*", "CountProjectionExpression:*"]
+		},
+		{
+			"state": "disable",
+			"resourceId": 65005,
+			"resourceType": "ESPer",
+			"swVersion": "1.0.0",
+			"resources": [
+				{
+					"cpu": 800.0,
+					"ram": 4000.0,
+					"disk": 16000.0,
+					"monetaryCost": 0.001,
+					"energyImpact": 0.001,
+					"securityLevel": 1
+				}
+			],
+			"connections": [
+				{
+					"downstreamNode": 65002,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65003,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65004,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				},
+				{
+					"downstreamNode": 65001,
+					"bandwidth":100000,
+					"monetaryCost":0.0 
+				}
+			],
+			"capabilities": ["UDF:persistResult", "RelationalOpExpression:*", "ArithmaticExpression:*", "DotExpression:*", "MatchRecognizeClause:*", "win:*", "CountProjectionExpression:*"]
+		}
+	],
+	"messageBus": {
+		"IP": "35.187.54.86",
+		"port": 61616,
+		"type": "activemq",
+		"username": "",
+		"pass": ""
+	}
+}

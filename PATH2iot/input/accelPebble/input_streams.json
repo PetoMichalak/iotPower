@@ -1,0 +1,30 @@
+{
+	"inputStreams": [
+		{
+			"streamName" : "AccelEventSource",
+			"streamProperties" : [
+				{
+					"name": "x",
+					"type": "double"
+				},
+				{
+					"name": "y",
+					"type": "double"
+				},
+				{
+					"name": "z",
+					"type": "double"
+				},
+				{
+					"name": "vibe",
+					"type": "integer",
+					"selectivity": "0.87"
+				},
+				{
+					"name": "ts",
+					"type": "long"
+				}
+			]
+		}
+	]
+}

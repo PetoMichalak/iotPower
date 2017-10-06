@@ -1,0 +1,192 @@
+{
+	"energyResources": [
+		{
+			"resourceType": "PebbleWatch",
+			"swVersion": "1.0.0",
+			"EIcoefficients": [
+			
+				{
+					"type": "OSidle",
+					"operator": "",
+					"cost": 1.780797328,
+					"confInt": 0.0370,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "UDF",
+					"operator": "getAccelData",
+					"cost": 0.060977212,
+					"confInt": 0.0153,
+					"generationRatio":300,
+					"selectivityRatio":1
+				},
+				{
+					"type": "RelationalOpExpression",
+					"operator": "=",
+					"cost": 0.091714146,
+					"confInt": 0.0416,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "ArithmaticExpression",
+					"operator": "*",
+					"cost": 0.335136959,
+					"confInt": 0.0665,
+					"generationRatio":1,
+					"selectivityRatio":0.33333333333
+				},
+				{
+					"type": "DotExpression",
+					"operator": "Math.pow",
+					"cost": 0.032450218,
+					"confInt": 0.1039,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "win",
+					"operator": "*",
+					"cost": 0.062281175,
+					"confInt": 0.0605,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "netCost",
+					"operator": "",
+					"cost": 5.064357224,
+					"confInt": 0.2747,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "bleActive",
+					"operator": "",
+					"cost": 12.11834585,
+					"confInt": 0.2747,
+					"generationRatio":1,
+					"selectivityRatio":1
+				}
+			]
+		},
+		{
+			"resourceType": "iPhone",
+			"swVersion": "1.0.0",
+			"EIcoefficients": [
+				{
+					"type": "OSidle",
+					"operator": "",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "sxfer",
+					"operator": "",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				}
+			]
+		},
+		{
+			"resourceType": "ESPer",
+			"swVersion": "1.0.0",
+			"EIcoefficients": 
+			[
+				{
+					"type": "OSidle",
+					"operator": "",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "sxfer",
+					"operator": "",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "UDF",
+					"operator": "persistResult",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "RelationalOpExpression",
+					"operator": "*",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "ArithmaticExpression",
+					"operator": "*",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "DotExpression",
+					"operator": "*",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "MatchRecognizeClause",
+					"operator": "*",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "win",
+					"operator": "*",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "CountProjectionExpression",
+					"operator": "*",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "netCost",
+					"operator": "",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				},
+				{
+					"type": "bleActive",
+					"operator": "",
+					"cost": 0,
+					"confInt": 0,
+					"generationRatio":1,
+					"selectivityRatio":1
+				}
+			]
+		}
+	]
+}

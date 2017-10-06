@@ -1,0 +1,31 @@
+{
+	"streamPinning": [
+		{
+			"streamName": "AccelEventSource",
+			"resourceId": 115001
+		},
+		{
+			"streamName": "AccelEvents",
+			"resourceId": 65001
+		},
+		{
+			"streamName": "FilteredEvents",
+			"resourceId": 65002
+		},
+		{
+			"streamName": "EdEvents",
+			"resourceId": 65003
+		},
+		{
+			"streamName": "SqrtEdEvents",
+			"resourceId": 65004
+		},
+		{
+			"streamName": "StepEvents",
+			"resourceId": 65005
+		},
+		{
+			"streamName": "StepCount",
+			"resourceId": 65005
+		}]
+}

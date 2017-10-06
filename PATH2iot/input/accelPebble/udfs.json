@@ -1,0 +1,76 @@
+{
+	"udf": [
+		{
+			"name": "getAccelData",
+			"output": "AccelEvents",
+			"frequency": 100,
+			"generationRatio": 3600,
+			"selectivityRatio": 1.0,
+			"notes": "This is an UDF generating initial accelerometer events available from bespoke Pebble Watch App. Parameters: 1 - data (x,y,z,vibe,ts,battery) represented by binary switch flags (e.g. 111101b - 64d - all on except ts); 2 - freq (0, 10, 25, 50, 100); 3 - name of the queue for the data",
+			"support": [
+				{
+					"device": "PebbleWatch",
+					"version": "1.0.0",
+					"metrics": [
+						{
+							"cpuCost": 5.0,
+							"ramCost": 1.0,
+							"diskCost": 0.0,
+							"dataOut": 18,
+							"monetaryCost": 0,
+							"securityLevel": 1
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "printResult",
+			"output": "",
+			"frequency": 0,
+			"generationRatio": 1,
+			"selectivityRatio": 0,
+			"notes": "This is a global sink representation via UDF.",
+			"support": [
+				{
+					"device": "ESPer",
+					"version": "0.0.1",
+					"metrics": [
+						{
+							"cpuCost": 1.0,
+							"ramCost": 1.0,
+							"diskCost": 0.0,
+							"dataOut": 0,
+							"monetaryCost": 0,
+							"securityLevel": 1
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "persistResult",
+			"output": "",
+			"frequency": 0,
+			"generationRatio": 1,
+			"selectivityRatio": 0,
+			"notes": "This is a global sink UDF that saves all data in database. Parameters: 1. database name, 2. table",
+			"support": [
+				{
+					"device": "ESPer",
+					"version": "0.0.1",
+					"metrics": [
+						{
+							"cpuCost": 1.0,
+							"ramCost": 1.0,
+							"diskCost": 0.0,
+							"dataOut": 0,
+							"monetaryCost": 0,
+							"securityLevel": 1
+						}
+					]
+				}
+			]
+		}
+	]
+}
