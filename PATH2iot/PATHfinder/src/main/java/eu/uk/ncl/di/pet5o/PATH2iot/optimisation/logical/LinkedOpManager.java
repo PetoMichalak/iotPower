@@ -2,6 +2,7 @@ package eu.uk.ncl.di.pet5o.PATH2iot.optimisation.logical;
 
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureDesc;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureNode;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.NodeCapability;
 import eu.uk.ncl.di.pet5o.PATH2iot.operator.CompOperator;
 import eu.uk.ncl.di.pet5o.PATH2iot.utils.NeoHandler;
 import org.apache.log4j.LogManager;
@@ -162,16 +163,16 @@ public class LinkedOpManager {
      * Compares the requirement with capabilities.
      * Wildcard is allowed in capability description (only in operator section).
      */
-    private boolean canRun(List<String> capabilities, String requirements) {
-        for (String capability : capabilities) {
+    private boolean canRun(List<NodeCapability> capabilities, String requirements) {
+        for (NodeCapability cap : capabilities) {
             // type has to match (capability defined as <type>:<operator>
             String reqType = requirements.substring(0, requirements.indexOf(":"));
-            String capType = capability.substring(0, capability.indexOf(":"));
+            String capType = cap.getName();
 
             if (capType.equals(reqType)) {
                 // compare operators - consider wildcard
                 String reqOp = requirements.substring(requirements.indexOf(":") + 1);
-                String capOp = capability.substring(capability.indexOf(":") + 1);
+                String capOp = cap.getOperator();
 
                 // supports all operators?
                 if (capOp.equals("*")) {

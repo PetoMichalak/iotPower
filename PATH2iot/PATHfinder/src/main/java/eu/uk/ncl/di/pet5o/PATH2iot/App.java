@@ -1,13 +1,10 @@
 package eu.uk.ncl.di.pet5o.PATH2iot;
 
+import eu.uk.ncl.di.pet5o.PATH2iot.compile.PathCompiler;
 import eu.uk.ncl.di.pet5o.PATH2iot.optimisation.cost.EnergyImpactEvaluator;
 import eu.uk.ncl.di.pet5o.PATH2iot.optimisation.logical.LogicalPlan;
 import eu.uk.ncl.di.pet5o.PATH2iot.optimisation.physical.PhysicalPlan;
-import eu.uk.ncl.di.pet5o.PATH2iot.utils.InputHandler;
-import eu.uk.ncl.di.pet5o.PATH2iot.utils.OperatorHandler;
-import eu.uk.ncl.di.pet5o.PATH2iot.utils.EsperSodaInspector;
-import eu.uk.ncl.di.pet5o.PATH2iot.utils.InfrastructureHandler;
-import eu.uk.ncl.di.pet5o.PATH2iot.utils.NeoHandler;
+import eu.uk.ncl.di.pet5o.PATH2iot.utils.*;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
@@ -38,6 +35,8 @@ public class App
     private static EsperSodaInspector eplInspector;
     private static OperatorHandler opHandler;
     private static InfrastructureHandler infraHandler;
+    private static RequirementHandler reqHandler;
+    private static SocketClientHandler socketHandler;
 
     public static void main( String[] args )
     {
@@ -72,6 +71,7 @@ public class App
 
         // 2b prune physical plans
         opHandler.pruneNonDeployablePhysicalPlans();
+        opHandler.applyWinSafetyRules();
         logger.info(String.format("[pruning non-deployable plans] There are %d physical plans in the collection.", opHandler.getPhysicalPlanCount()));
 
         // 3 energy model eval
@@ -81,20 +81,37 @@ public class App
             logger.debug(String.format("%.2f EI: %s", eiEval.evaluate(physicalPlan), physicalPlan));
         }
 
+        // list all plans that comply with the energy requirements
+        double energyReq = reqHandler.getRequirement("PebbleWatch", "hour");
+        int compliantPlanCount = 0;
+        for (PhysicalPlan physicalPlan : opHandler.getPhysicalPlans()) {
+            if (physicalPlan.getEstimatedLifetime(inputHandler.getInfrastructureDescription(), "PebbleWatch") > energyReq) {
+                // this is a physical plan that complies with the energy requirements
+                compliantPlanCount++;
+            }
+        }
+        logger.info(String.format("There are %d physical plans that satisfy energy requirements (%s h).",
+                compliantPlanCount, energyReq));
+
         // return the execution plan based on the cost
         PhysicalPlan executionPlan = opHandler.getExecutionPlan();
-        logger.info(String.format("The cheapest plan is (EI: %.2f):\n%s",
-                executionPlan.getEnergyCost(), executionPlan));
+        logger.info(String.format("The cheapest plan is (EI: %.2f):\n%s. Estimated battery life of: %.2f hours",
+                executionPlan.getEnergyCost(), executionPlan,
+                executionPlan.getEstimatedLifetime(inputHandler.getInfrastructureDescription(), "PebbleWatch")));
 
         // 4 compile execution plan
-        // todo device-specific compilation to be ported
+        PathCompiler pathCompiler = new PathCompiler();
+        pathCompiler.compile(executionPlan, eplInspector,
+                inputHandler.getInfrastructureDescription(), inputHandler.getInputStreams());
+        logger.debug(pathCompiler.getExecutionPlan());
 
         // 5 send the plan to PATHdeployer
-        // todo establish connection to PATHdeployer and transfer config
+        socketHandler = new SocketClientHandler(inputHandler.getPathDeployerIp(), inputHandler.getPathDeployerPort());
+        socketHandler.connect();
+        socketHandler.send(pathCompiler.getExecutionPlan());
 
         logger.info("It is done.");
     }
-
 
 
     /**
@@ -104,8 +121,10 @@ public class App
      * * operator handler - logical and physical plan optimisation module
      */
     private static void initInternalHandlers(InputHandler inputHandler) {
-        neoHandler = new NeoHandler(inputHandler.getNeoAddress() + ":" + inputHandler.getNeoPort());
+        neoHandler = new NeoHandler(inputHandler.getNeoAddress() + ":" + inputHandler.getNeoPort(),
+                inputHandler.getNeoUser(), inputHandler.getNeoPass());
         eplInspector = new EsperSodaInspector(neoHandler);
         opHandler = new OperatorHandler(neoHandler);
+        reqHandler = new RequirementHandler(inputHandler.getRequirements());
     }
 }

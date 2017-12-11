@@ -8,6 +8,7 @@ import eu.uk.ncl.di.pet5o.PATH2iot.infrastructure.InfrastructurePlan;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.StreamResourcePair;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureDesc;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureNode;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.NodeCapability;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.udfs.UdfDefs;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.udfs.UdfEntry;
 import eu.uk.ncl.di.pet5o.PATH2iot.operator.CompOperator;
@@ -25,7 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The core of the project starts here. Handle UDFs and operator pinning, then start use smarter metrics.
+ * Operator handler class manages logical plan generation, enumeration of physical plans, and
+ * returns the final execution plan.
  *
  * @author Peter Michalak
  */
@@ -37,10 +39,6 @@ public class OperatorHandler {
     private LogicalPlan logicalPlan;
     private ArrayList<LogicalPlan> enumeratedLogicalPlans;
     private ArrayList<PhysicalPlan> enumeratedPhysicalPlans;
-
-    // number of maximum operators per node
-    private final int MAX_OP_ON_NODE = 4;
-
 
     public OperatorHandler(NeoHandler neoHandler) {
         this.neoHandler = neoHandler;
@@ -136,67 +134,6 @@ public class OperatorHandler {
             logger.debug("Find direct downstream nodes for " + downstreamNode);
             findDownstreamNodesRec(rel, downstreamNode);
         }
-    }
-
-    /**
-     * User defined stream pinning guarantees all operators using given stream, will be placed on given resourceId
-     * @param streamResourcePairs streamName, resourceId
-     * @return physical placement plan
-     */
-    public List<Object> getPhysicalPlacementByStreamPinning(List<StreamResourcePair> streamResourcePairs) {
-        logger.debug("Generating physical plan based on stream pinning definitions.");
-        List<Object> ppPlan = new ArrayList<>();
-        int opPlaced = 0;
-
-        // get all operators
-        ArrayList<Integer> compIds = neoHandler.getAllVertices("COMP");
-        ArrayList<CompOperator> ops = new ArrayList<>();
-        for (Integer compId : compIds) {
-            ops.add(neoHandler.getOperatorById(compId));
-        }
-
-        // get all infrastructure nodes
-        ArrayList<Integer> nodeIds = neoHandler.getAllVertices("NODE");
-        ArrayList<InfrastructureNode> nodes = new ArrayList<>();
-        for (Integer nodeId : nodeIds) {
-            nodes.add(neoHandler.getInfrastructureNodeById(nodeId));
-        }
-
-        // for each node - find all computations to place on it
-        for (InfrastructureNode node : nodes) {
-            // find the pinned stream(s) to this comp
-            List<String> streamName = getPinnedStreamName(node.getResourceId(), streamResourcePairs);
-            for (CompOperator op : ops) {
-                // ToDo replace is potentionally dangerous move - it is intended to include nested generated stream names
-                if (streamName.contains(op.getStreamOrigin().replaceAll("_",""))) {
-                    // this operator should be pinned to this node
-                    ppPlan.add(op);
-                    opPlaced ++;
-                }
-            }
-            // place the actual node
-            ppPlan.add(node);
-        }
-
-        // verify all operators were placed
-        if (opPlaced != compIds.size()) {
-            logger.error(String.format("%d ops were placed, %d intended.", opPlaced, compIds.size()));
-        }
-
-        return ppPlan;
-    }
-
-    /**
-     * Returns a stream name(s) pinned to this operator.
-     */
-    private List<String> getPinnedStreamName(Long resourceId, List<StreamResourcePair> streamResourcePairs) {
-        List<String> streamNames = new ArrayList<>();
-        for (StreamResourcePair streamResourcePair : streamResourcePairs) {
-            if (streamResourcePair.getResourceId() - resourceId == 0) {
-                streamNames.add(streamResourcePair.getStreamName());
-            }
-        }
-        return streamNames;
     }
 
     /**
@@ -353,7 +290,6 @@ public class OperatorHandler {
      * Checks whether given plan is deployable.
      */
     private boolean isDeployble(PhysicalPlan physicalPlan) {
-        // todo for each operator, check that platform has the capability defined in the current state
         for (CompOperator op : physicalPlan.getCurrentOps()) {
             // get the resource
             InfrastructureNode node = physicalPlan.getOpPlacementNode(op);
@@ -377,5 +313,111 @@ public class OperatorHandler {
             }
         }
         return execPlan;
+    }
+
+    /**
+     * Finds a single sink operator from the list of provided operators.
+     * @param ops list of operators
+     * @return final sink operator
+     */
+    public static CompOperator getSingleSink(ArrayList<CompOperator> ops) {
+        //
+        for (CompOperator op : ops) {
+            if (isLocalSink(op, ops)) {
+                return op;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks whether the operator is a local sink in give list
+     */
+    private static boolean isLocalSink(CompOperator op, ArrayList<CompOperator> ops) {
+        Boolean isSink = true;
+        // check if the operator points to any others in the group
+        for (Integer downstreamNodeId : op.getDownstreamOpIds()) {
+            if (op.getNodeId() == downstreamNodeId) {
+                // this is not a sink for this group of operators
+                return false;
+            }
+        }
+        return isSink;
+    }
+
+    /**
+     * Searches through provided compoperators and returns the upstream one
+     */
+    public static CompOperator getUpstreamOp(CompOperator op, ArrayList<CompOperator> ops) {
+        CompOperator upstreamOp = null;
+        for (CompOperator tempOp : ops) {
+            for (Integer downstreamOpId : tempOp.getDownstreamOpIds()) {
+                if (downstreamOpId == op.getNodeId()) {
+                    // this is the upstream operator
+                    return tempOp;
+                }
+            }
+        }
+        return upstreamOp;
+    }
+
+    /**
+     * Scans plans for windows and applies window safety rules.
+     */
+    public void applyWinSafetyRules() {
+        ArrayList<PhysicalPlan> deployablePhysicalPlans = new ArrayList<>();
+        for (PhysicalPlan enumeratedPhysicalPlan : enumeratedPhysicalPlans) {
+            Boolean deployable = true;
+            CompOperator winOp = null;
+            // find the window operator (if present)
+            for (CompOperator op : enumeratedPhysicalPlan.getCurrentOps()) {
+                if (op.getType().equals("win")) {
+                    winOp = op;
+                }
+            }
+
+            // if window present
+            if (winOp != null) {
+                // cannot be a source node
+                if (enumeratedPhysicalPlan.isSource(winOp)) {
+                    logger.debug("[win] Pruning undeployable plan: " + enumeratedPhysicalPlan);
+                    deployable = false;
+                }
+
+                // all downstream operators must support windows as input
+                ArrayList<CompOperator> downNodeOps = enumeratedPhysicalPlan.getDownNodeOps(winOp);
+                for (CompOperator downNodeOp : downNodeOps) {
+                    InfrastructureNode opPlacementNode = enumeratedPhysicalPlan.getOpPlacementNode(downNodeOp);
+                    if (! supportsWin(downNodeOp, opPlacementNode)) {
+                        logger.debug("[win] Pruning undeployable plan: " + enumeratedPhysicalPlan);
+                        deployable = false;
+                    }
+                }
+
+            }
+
+            // the plan survived pruning
+            if (deployable) {
+                deployablePhysicalPlans.add(enumeratedPhysicalPlan);
+            }
+        }
+        enumeratedPhysicalPlans = deployablePhysicalPlans;
+    }
+
+    /**
+     * Checks whether the operator on this node supports windows
+     */
+    private boolean supportsWin(CompOperator op, InfrastructureNode node) {
+        // find the operator
+        for (NodeCapability cap : node.getCapabilities()) {
+            if (op.getType().equals(cap.getName())) {
+                return cap.supportsWin;
+            }
+        }
+
+        // no match found
+        logger.warn("Capability not found for the operator: " + op.getName());
+        return false;
     }
 }

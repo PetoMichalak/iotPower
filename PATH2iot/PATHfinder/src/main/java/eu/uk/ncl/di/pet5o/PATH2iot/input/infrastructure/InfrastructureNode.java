@@ -25,11 +25,14 @@ public class InfrastructureNode implements Cloneable {
     private double cpu;
     private double monetaryCost;
     private double ram;
+    private double batteryCapacity_mAh;
+    private double batteryVoltage_V;
+    private double defaultNetworkFreq;
     private Long resourceId;
     private String resourceType;
     private List<InfrastructureResource> resources;
     private List<ConnectionDesc> connections;
-    private List<String> capabilities;
+    private List<NodeCapability> capabilities;
     private List<Integer> downstreamNodes;
 
     public InfrastructureNode() { }
@@ -78,6 +81,22 @@ public class InfrastructureNode implements Cloneable {
         this.nodeId = nodeId;
     }
 
+    public double getBatteryCapacity_mAh() {
+        return batteryCapacity_mAh;
+    }
+
+    public void setBatteryCapacity_mAh(double batteryCapacity_mAh) {
+        this.batteryCapacity_mAh = batteryCapacity_mAh;
+    }
+
+    public double getBatteryVoltage_V() {
+        return batteryVoltage_V;
+    }
+
+    public void setBatteryVoltage_V(double batteryVoltage_V) {
+        this.batteryVoltage_V = batteryVoltage_V;
+    }
+
     public String getState() {
         return state;
     }
@@ -86,11 +105,19 @@ public class InfrastructureNode implements Cloneable {
         this.state = state;
     }
 
-    public List<String> getCapabilities() {
+    public double getDefaultNetworkFreq() {
+        return defaultNetworkFreq;
+    }
+
+    public void setDefaultNetworkFreq(double defaultNetworkFreq) {
+        this.defaultNetworkFreq = defaultNetworkFreq;
+    }
+
+    public List<NodeCapability> getCapabilities() {
         return capabilities;
     }
 
-    public void setCapabilities(List<String> capabilities) {
+    public void setCapabilities(List<NodeCapability> capabilities) {
         this.capabilities = capabilities;
     }
 
@@ -106,18 +133,30 @@ public class InfrastructureNode implements Cloneable {
         resourceType = rs.getString("n.resourceType");
         ram = getDoubleFromRS(rs.getString("n.ram"));
         capabilities = parseNodeCapabilities(rs.getString("n.capabilities"));
+        String defNet = rs.getString("n.defaultNetworkFreq");
+        defaultNetworkFreq = Double.valueOf(defNet);
     }
 
     /**
-     * Converts format CSV capabilities into list.
+     * Converts format CSV capabilities into list. e.g.
+     * UDF:getAccelData:0,RelationalOpExpression:=:0,ArithmaticExpression:*:0
      */
-    private List<String> parseNodeCapabilities(String capabilities) {
+    private List<NodeCapability> parseNodeCapabilities(String capabilities) {
+        // capability placeholder
+        ArrayList<NodeCapability> caps = new ArrayList<>();
+
+        // split on comma
         String[] capList = capabilities.split(",");
-        List<String> out = new ArrayList<>();
-        for (String subString : capList) {
-            out.add(subString);
+
+        // iterate over all capabilities and parse them
+        for (String capabilityCsv : capList) {
+            String[] splitCap = capabilityCsv.split(":");
+            NodeCapability tempCap = new NodeCapability(splitCap[0], splitCap[1],
+                    splitCap[2].equals("1"));
+            caps.add(tempCap);
         }
-        return out;
+
+        return caps;
     }
 
     private double getDoubleFromRS(Object value) {
@@ -152,18 +191,16 @@ public class InfrastructureNode implements Cloneable {
     }
 
     /**
-     * Determines whther the node is capable of running given operator.
+     * Determines whether the node is capable of running given operator.
      */
     public boolean canRun(String type, String operator) {
        // loop through capabilities
-        for (String capability : capabilities) {
-            // capabilities are currently stored as type:operator tuples e.g. "RelationalOpExpression:="
+        for (NodeCapability capability : capabilities) {
             // with limited support for regex
-            String[] capDef = capability.split(":");
             // the type must match
-            if (capDef[0].equals(type)) {
+            if (capability.getName().equals(type)) {
                 // the operator can be a wildcard
-                if (capDef[1].equals(operator) || (capDef[1].equals("*")))
+                if (capability.getOperator().equals(operator) || (capability.getOperator().equals("*")))
                     return true;
             }
         }

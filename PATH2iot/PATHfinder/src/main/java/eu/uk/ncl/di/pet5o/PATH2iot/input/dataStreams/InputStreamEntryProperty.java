@@ -7,12 +7,14 @@ package eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams;
  */
 public class InputStreamEntryProperty {
     private String name;
+    private String asName;
     private String type;
 
     public InputStreamEntryProperty() {}
 
     public InputStreamEntryProperty(String name, String type) {
         this.name = name;
+        this.asName = name;
         this.type = type;
     }
 
@@ -42,5 +44,13 @@ public class InputStreamEntryProperty {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getAsName() {
+        return asName;
+    }
+
+    public void setAsName(String asName) {
+        this.asName = asName;
     }
 }

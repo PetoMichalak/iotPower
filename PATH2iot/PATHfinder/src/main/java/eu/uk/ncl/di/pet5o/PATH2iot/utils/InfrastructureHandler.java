@@ -4,6 +4,7 @@ import eu.uk.ncl.di.pet5o.PATH2iot.infrastructure.InfrastructurePlan;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureDesc;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureNode;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureResource;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.NodeCapability;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.network.ConnectionDesc;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -77,6 +78,7 @@ public class InfrastructureHandler {
                 childPairs.put("energyImpact", infraResource.getEnergyImpact().toString());
                 childPairs.put("securityLevel", Integer.toString(infraResource.getSecurityLevel()));
                 childPairs.put("capabilities", formatNodeCapabilities(node.getCapabilities()));
+                childPairs.put("defaultNetworkFreq", Double.toString(node.getDefaultNetworkFreq()));
 
                 // build a node
                 neoHandler.createNode("NODE", childPairs);
@@ -89,13 +91,17 @@ public class InfrastructureHandler {
     /**
      * Converts a JSON list into a CSV format
      */
-    private String formatNodeCapabilities(List<String> capabilities) {
+    private String formatNodeCapabilities(List<NodeCapability> capabilities) {
         String out = "";
-        for (String capability : capabilities) {
-            out += capability + ",";
+
+        // loop through all capabilities
+        for (NodeCapability cap : capabilities) {
+            out += String.format("%s:%s:%s,", cap.getName(), cap.getOperator(), cap.getSupportsWin() ? "1":"0");
         }
+
         // get rid of trailing comma
         out = out.substring(0, out.length()-1);
+
         return out;
     }
 

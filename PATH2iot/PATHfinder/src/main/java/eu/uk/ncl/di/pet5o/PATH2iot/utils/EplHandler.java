@@ -4,9 +4,14 @@ import com.espertech.esper.client.Configuration;
 import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.soda.*;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.InputStreamEntry;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.InputStreamEntryProperty;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.InputStreams;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by peto on 11/04/2017.
@@ -56,6 +61,63 @@ public class EplHandler {
             destination = "";
         }
         logger.debug(this);
+    }
+
+    /**
+     * Compares the input and output stream and drops unnecesary projects.
+     * // note2u: no effect in the current use case - double check in the future
+     */
+    public void dropFields() {
+        // get the input stream
+        InputStreamEntry sourceStream = inputStreams.getInputStreamByName(origin);
+
+        // get the output stream
+        InputStreamEntry sinkStream = inputStreams.getInputStreamByName(destination);
+
+        // compare that all fields are needed
+
+        List<InputStreamEntryProperty> inputStreamEntryProperties = findUnnecessaryFields(sourceStream, sinkStream);
+
+        // drop unnecessary stream
+        dropInputStreamEntry(sourceStream, inputStreamEntryProperties);
+    }
+
+    /**
+     * Compares two streams and returns list of stream entry properties that are not used.
+     */
+    private List<InputStreamEntryProperty> findUnnecessaryFields(InputStreamEntry source, InputStreamEntry sink) {
+        List<InputStreamEntryProperty> fields = new ArrayList<>();
+        // find all properties not used
+        for (InputStreamEntryProperty sourceProp : source.getStreamProperties()) {
+            boolean isPresent = false;
+            for (InputStreamEntryProperty sinkProp : sink.getStreamProperties()) {
+                if (sinkProp.getName().equals(sourceProp.getName())) {
+                    isPresent = true;
+                }
+            }
+
+            // if not present add to to a remove list
+            if (! isPresent) {
+                fields.add(sourceProp);
+            }
+        }
+
+        return fields;
+    }
+
+    /**
+     * Strips specified fields from the stream.
+     */
+    private void dropInputStreamEntry(InputStreamEntry stream, List<InputStreamEntryProperty> props) {
+        // clone the stream
+        List<InputStreamEntryProperty> tempProps = new ArrayList<>(props);
+
+        // iterate properties and drop them
+        for (InputStreamEntryProperty prop : props) {
+            if (tempProps.contains(prop)) {
+                stream.getStreamProperties().remove(prop);
+            }
+        }
     }
 
     @Override

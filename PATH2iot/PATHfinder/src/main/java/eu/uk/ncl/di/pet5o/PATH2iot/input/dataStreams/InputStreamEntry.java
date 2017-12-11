@@ -32,4 +32,11 @@ public class InputStreamEntry {
     public void setStreamProperties(List<InputStreamEntryProperty> streamProperties) {
         this.streamProperties = streamProperties;
     }
+
+    /**
+     * Add stream property to the definition of the stream
+     */
+    public void addStreamProperty(String name, String type) {
+        streamProperties.add(new InputStreamEntryProperty(name, type));
+    }
 }

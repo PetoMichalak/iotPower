@@ -2,9 +2,10 @@
 
 *PATHfinder* is a self-contained module of PATH2iot system. It takes a high-level declarative description of computation, set of non-functional requirements, state of the infrastructure and return an optimised (best) plan to fulfil these criteria.
  
-### Functionality ###
+### Functionality v0.1.0.0 ###
  * EPL decomposition,
- * Non-functional requirements parsing
+ * Logical Plan optimisation
+ * Physical Plan enumeration
  * Energy model evaluation
  * Device specific compilation (coming)
    * Pebble Watch
@@ -28,7 +29,9 @@
 
 ### Upcoming functionality ###
 
-* support for multi-hop sxfer operator (infrastructure nodes.
+* support for multi-hop sxfer operator (infrastructure nodes),
+* confidence intervals calculation,
+* estimated battery lifetime calculation.
 
 ### Who do I talk to? ###
 

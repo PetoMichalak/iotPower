@@ -234,7 +234,7 @@ public class LogicalPlan {
     /**
      * Returns a deep copy the logical plan.
      */
-    private LogicalPlan getCopy() {
+    public LogicalPlan getCopy() {
         LogicalPlan planCopy = new LogicalPlan(udfs);
         for (CompOperator operator : operators) {
             CompOperator opCopy = operator.getCopy();
@@ -308,5 +308,9 @@ public class LogicalPlan {
      */
     public int getOpCount() {
         return operators.size();
+    }
+
+    public ArrayList<CompOperator> getOperators() {
+        return operators;
     }
 }

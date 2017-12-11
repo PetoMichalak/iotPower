@@ -4,19 +4,22 @@ import com.espertech.esper.client.Configuration;
 import com.espertech.esper.client.EPServiceProvider;
 import com.espertech.esper.client.EPServiceProviderManager;
 import com.espertech.esper.client.soda.*;
+import eu.uk.ncl.di.pet5o.PATH2iot.compile.output.EsperStatement;
+import eu.uk.ncl.di.pet5o.PATH2iot.compile.output.EsperStream;
+import eu.uk.ncl.di.pet5o.PATH2iot.compile.output.QueueProperty;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.InputStreamEntry;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.InputStreamEntryProperty;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.dataStreams.InputStreams;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureDesc;
+import eu.uk.ncl.di.pet5o.PATH2iot.input.network.MessageBus;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.udfs.UdfDefs;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.udfs.UdfEntry;
+import eu.uk.ncl.di.pet5o.PATH2iot.operator.CompOperator;
 import eu.uk.ncl.di.pet5o.PATH2iot.operator.EplOperator;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by peto on 11/02/2017.
@@ -86,10 +89,13 @@ public class EsperSodaInspector {
             inspectSelectClause(selectClause, eplHandle, udfs);
 
             // keep record of any streams
-//            epInspector.preserveStreams(inputStreams, eplHandle.getOrigin(), eplHandle.getDestination());
+            preserveStreams(inputStreams, eplHandle.getOrigin(), eplHandle.getDestination());
 
             // persists the last comp node id throuhgout statements
             lastCompNodeId = eplHandle.getLastCompNodeId();
+
+            // strip unnecessary fields
+            eplHandle.dropFields();
 
             logger.info("  --epl-done--\n");
         }
@@ -444,15 +450,6 @@ public class EsperSodaInspector {
      * Goes through the select statement are verifies whether this part of the statement belongs to an UDF.
      */
     private boolean isSourceUdf(Expression expression, EplHandler eplHandle, UdfDefs udfs) {
-        Boolean originMatches = false;
-        Boolean udfFuncMatches = false;
-
-        // check whether the origin matches any entries in input_streams
-        for (InputStreamEntry stream : eplHandle.getInputStreams().getInputStreams()) {
-            if (stream.getStreamName().equals(eplHandle.getOrigin())) {
-                originMatches = true;
-            }
-        }
 
         // check whether the function is available in udfs
         if (expression.getClass().equals(DotExpression.class)) {
@@ -460,13 +457,14 @@ public class EsperSodaInspector {
             for (DotExpressionItem dotExpr : prop.getChain()) {
                 for (UdfEntry udf : udfs.getUdf()) {
                     if (dotExpr.getName().equals(udf.getName())) {
-                        udfFuncMatches = true;
+                        // found the correct udf entry - return the isSource
+                        return udf.isSource();
                     }
                 }
             }
         }
 
-       return ((originMatches) && (udfFuncMatches));
+       return false;
     }
 
 
@@ -842,9 +840,8 @@ public class EsperSodaInspector {
 
         Map<String, Object> keyPairs = new HashMap<>();
         keyPairs.put("streamDestination", destination);
-        keyPairs.put("streamOrigin", destination);
 
-        List<String> projects = neoHandler.findNodesWithProperties("PROJECT", keyPairs, "name");
+        List<String> projects = neoHandler.findOutboundNodesWithProperties("PROJECT", keyPairs);
 
         // create new stream definition
         InputStreamEntry newStream = new InputStreamEntry();
@@ -852,22 +849,18 @@ public class EsperSodaInspector {
         List<InputStreamEntryProperty> newProps = new ArrayList<>();
 
         for (String propName : projects) {
-            if (propName != null && propName.length() > 0 &! propName.equals("null"))
-                newProps.add(getNewStreamProperty(propName, origin, inputStreams));
+            if (propName != null && propName.length() > 0 &! propName.equals("null")) {
+                // split name,asName
+                String[] names = propName.split(",");
+                // if no asName, use name
+                if (names[1].equals("null"))
+                    names[1] = names[0];
+                newProps.add(getNewStreamProperty(names[0], names[1], origin, inputStreams));
+            }
+
         }
         newStream.setStreamProperties(newProps);
         inputStreams.addStream(newStream);
-
-        // check that destination was created
-        for (InputStreamEntry stream : inputStreams.getInputStreams()) {
-            if (stream.getStreamName().equals(destination)) {
-                // it exists - check that it has at least one property
-                if (stream.getStreamProperties().size() == 0) {
-                    // copy the origin stream here
-                    copyStreamProperties(inputStreams, stream, origin);
-                }
-            }
-        }
 
     }
 
@@ -890,10 +883,11 @@ public class EsperSodaInspector {
     /**
      * Examine the stream in attempt to find the match from old stream definition.
      */
-    private InputStreamEntryProperty getNewStreamProperty(String propName, String streamName, InputStreams inputStreams) {
-        logger.debug("Matching: " + propName + " for " + streamName);
+    private InputStreamEntryProperty getNewStreamProperty(String name, String asName, String streamName, InputStreams inputStreams) {
+        logger.debug("Matching: " + name + " for " + streamName);
         InputStreamEntryProperty newProp = new InputStreamEntryProperty();
-        newProp.setName(propName);
+        newProp.setName(name);
+        newProp.setAsName(asName);
         // a default value - if no match found from a previous stream
         newProp.setType("double");
         // find the stream
@@ -901,7 +895,7 @@ public class EsperSodaInspector {
             if (inputStreamEntry.getStreamName().equals(streamName)) {
                 // found the stream, now find the property
                 for (InputStreamEntryProperty oldProp : inputStreamEntry.getStreamProperties()) {
-                    if (oldProp.getName().equals(propName)) {
+                    if (oldProp.getName().equals(name)) {
                         newProp.setType(oldProp.getType());
                     }
                 }
@@ -918,4 +912,298 @@ public class EsperSodaInspector {
         this.eplOps = eplOps;
     }
 
+    /**
+     * Return a requested parameter of an operator from a DotExpression node
+     * @param opId operator id
+     * @param index parameters are stored as a children of a DotExpression object
+     * @return the value of the parameter passed in the query
+     */
+    public int getDotExpressionParam(int opId, int index) {
+        EplOperator eplOperator = eplOps.get(opId);
+        // it is a DotExpression op
+        DotExpression dot1 = (DotExpression) eplOperator.getEsperOp();
+
+        // due to a nested structure parameters are stored within the first child of the object
+        DotExpressionItem dot2 = dot1.getChain().get(0);
+
+        // return the desired parameter value
+        ConstantExpression constantExpression = (ConstantExpression) dot2.getParameters().get(index);
+        return (Integer) constantExpression.getConstant();
+    }
+
+    public String buildDotExpression(Set<String> streams, ArrayList<EsperStatement> statements,
+                                     CompOperator op, CompOperator nestedOp, InfrastructureDesc infra, InputStreams inputStreams) {
+        String config = "";
+        QueueProperty messageBus = new QueueProperty(infra.getMessageBus().getIP(), infra.getMessageBus().getPort(),
+                "", infra.getMessageBus().getType());
+
+        // find the statement
+        EplOperator eplOperator = eplOps.get(op.getNodeId());
+
+        // if there is no nested operator remove the parameter 1 with $1
+        if (nestedOp == null) {
+            Object esperOpObject = eplOperator.getEsperOp();
+            if (esperOpObject instanceof SelectClauseExpression) {
+                SelectClauseExpression selectClause = (SelectClauseExpression) esperOpObject;
+                // as we are expecting dot expression with no nested loops lets drop the nested comp
+                DotExpression dotExp = (DotExpression) selectClause.getExpression();
+                dotExp.getChain().get(1).getParameters().set(0, new PropertyValueExpression(selectClause.getAsName()));
+
+                // push the new property into the inputstreams definition
+                InputStreamEntry inputStream = inputStreams.getInputStreamByName(op.getStreamOrigin());
+                inputStream.addStreamProperty(selectClause.getAsName(), "double");
+
+                // Default EPL with source and sink nodes
+                String tempEpl = String.format("INSERT INTO %s SELECT * FROM %s",
+                        op.getStreamDestination(), op.getStreamOrigin());
+
+                // set the message bus
+                messageBus.setQueue(op.getStreamDestination());
+
+                // add to set all used streams - only if this is an initial input stream
+                if (streams.size() < 1) {
+                    streams.add(op.getStreamOrigin());
+                }
+
+                // translate back to EPL
+                EPStatementObjectModel eplModel = epService.getEPAdministrator().compileEPL(tempEpl);
+
+                // get select clause so it can be modified
+                SelectClause tempSelectClause = eplModel.getSelectClause();
+                List<SelectClauseElement> selectList = tempSelectClause.getSelectList();
+
+                // remove the pre-set
+                selectList.clear();
+                selectList.add(selectClause);
+
+                // import all projects into the select clause
+                pushProjectsIntoEpl(selectList, op.getStreamDestination(), inputStreams);
+
+                config += eplModel.toEPL();
+            }
+        } else { // if there is a nested operator - inject it in
+            // todo check the signature of nested operator (comp if it the same as in input)
+        }
+
+        EsperStatement statement = new EsperStatement(config, messageBus);
+        statements.add(statement);
+
+        return config;
+    }
+
+    /**
+     * Inserts missing project operators into the select clause, to ensure propagation of all data elements.
+     */
+    private void pushProjectsIntoEpl(List<SelectClauseElement> selectClause, String stream, InputStreams inputStreams) {
+        // find all elements for this stream
+        InputStreamEntry inputStream = inputStreams.getInputStreamByName(stream);
+
+        // only attempt to append new project elements to the select clause if indicated by the input stream
+        if (inputStream != null) {
+            for (InputStreamEntryProperty streamProp : inputStream.getStreamProperties()) {
+                boolean isPresent = false;
+                // find those not present in the select list
+                for (SelectClauseElement selectClauseElement : selectClause) {
+                    if (selectClauseElement instanceof SelectClauseExpression) {
+                        SelectClauseExpression tempExpr = (SelectClauseExpression) selectClauseElement;
+                        if (tempExpr.getAsName().equals(streamProp.getAsName())) {
+                            isPresent = true;
+                        }
+                    }
+                }
+
+                // if not present add it on
+                if (!isPresent) {
+                    // if there is a wildcard remove it
+                    removeWildcardProjectIfPresent(selectClause);
+
+                    logger.debug(String.format("Adding %s to the EPL.", streamProp.getAsName()));
+                    SelectClauseExpression tempExpr = new SelectClauseExpression(
+                            new PropertyValueExpression(streamProp.getName()), streamProp.getAsName());
+                    selectClause.add(tempExpr);
+                }
+            }
+        }
+    }
+
+    /**
+     * Loops through the select clause elements and removes wildcard if found.
+     */
+    private void removeWildcardProjectIfPresent(List<SelectClauseElement> selectClause) {
+        SelectClauseElement toBeRemoved = null;
+        for (SelectClauseElement selectClauseElement : selectClause) {
+            if (selectClauseElement instanceof SelectClauseWildcard) {
+                toBeRemoved = selectClauseElement;
+            }
+        }
+
+        // if found remove it
+        if (toBeRemoved != null) {
+            logger.debug("Stripping wildcard project from EPL.");
+            selectClause.remove(toBeRemoved);
+        }
+    }
+
+    /**
+     * Finds and creates the match recognize expression from previously parsed config.
+     */
+    public String buildMatchRecognizeExpression(Set<String> streams, ArrayList<EsperStatement> statements, CompOperator op, InfrastructureDesc infra, InputStreams inputStreams) {
+        String config = "";
+
+        // find the statement
+        EplOperator eplOperator = eplOps.get(op.getNodeId());
+
+        QueueProperty messageBus = new QueueProperty(infra.getMessageBus().getIP(), infra.getMessageBus().getPort(),
+                "", infra.getMessageBus().getType());
+
+        // get the operator
+        Object esperOpObject = eplOperator.getEsperOp();
+
+        if (esperOpObject instanceof MatchRecognizeClause) {
+            MatchRecognizeClause matchRec = (MatchRecognizeClause) esperOpObject;
+
+            // Default EPL with source and sink nodes
+            String tempEpl = String.format("INSERT INTO %s SELECT * FROM %s",
+                    op.getStreamDestination(), op.getStreamOrigin());
+
+            // set the message bus
+            messageBus.setQueue(op.getStreamDestination());
+
+            // add to set all used streams - only if this is an initial input stream
+            if (streams.size() < 1) {
+                streams.add(op.getStreamOrigin());
+            }
+
+            // translate back to EPL
+            EPStatementObjectModel eplModel = epService.getEPAdministrator().compileEPL(tempEpl);
+
+            // set the match recognize clause here
+            eplModel.setMatchRecognizeClause(matchRec);
+
+            // import all projects into the select clause
+            pushProjectsIntoEpl(eplModel.getSelectClause().getSelectList(), op.getStreamDestination(), inputStreams);
+
+            config += eplModel.toEPL();
+        }
+
+        EsperStatement statement = new EsperStatement(config, messageBus);
+        statements.add(statement);
+
+        return config;
+    }
+
+    /**
+     * Builds a count projection epxression from the operator and returns parsed EPL statement.
+     */
+    public String buildCountProjectionExpression(Set<String> streams, ArrayList<EsperStatement> statements, CompOperator op, InfrastructureDesc infra, InputStreams inputStreams) {
+        String config = "";
+
+        QueueProperty messageBus = new QueueProperty(infra.getMessageBus().getIP(), infra.getMessageBus().getPort(),
+                "", infra.getMessageBus().getType());
+
+        // find the statement
+        EplOperator eplOperator = eplOps.get(op.getNodeId());
+
+        // get the operator
+        Object esperOpObject = eplOperator.getEsperOp();
+
+        if (esperOpObject instanceof SelectClauseExpression) {
+            SelectClauseExpression countExp = (SelectClauseExpression) esperOpObject;
+
+            // Default EPL with source and sink nodes
+            String tempEpl = String.format("INSERT INTO %s SELECT * FROM %s",
+                    op.getStreamDestination(), op.getStreamOrigin());
+
+            // set the message bus
+            messageBus.setQueue(op.getStreamDestination());
+
+            // add to set all used streams - only if this is an initial input stream
+            if (streams.size() < 1) {
+                streams.add(op.getStreamOrigin());
+            }
+
+            // translate back to EPL
+            EPStatementObjectModel eplModel = epService.getEPAdministrator().compileEPL(tempEpl);
+
+            // set the match recognize clause here
+            SelectClause tempSelectClause = eplModel.getSelectClause();
+            List<SelectClauseElement> selectList = tempSelectClause.getSelectList();
+
+            // remove the pre-set
+            selectList.clear();
+            selectList.add(countExp);
+
+            // import all projects into the select clause
+            pushProjectsIntoEpl(selectList, op.getStreamDestination(), inputStreams);
+
+            config += eplModel.toEPL();
+        }
+
+        EsperStatement statement = new EsperStatement(config, messageBus);
+        statements.add(statement);
+
+        return config;
+    }
+
+    /**
+     * Finds the udf as defined in the master query and recreates it with proper
+     * stream origin and destination into EPL.
+     */
+    public String buildUdf(Set<String> streams, ArrayList<EsperStatement> statements, CompOperator op, InfrastructureDesc infra, InputStreams inputStreams) {
+        String config = "";
+
+        // find the statement
+        EplOperator eplOperator = eplOps.get(op.getNodeId());
+
+        QueueProperty messageBus = new QueueProperty(infra.getMessageBus().getIP(), infra.getMessageBus().getPort(),
+                "", infra.getMessageBus().getType());
+
+        // get the operator
+        Object esperOpObject = eplOperator.getEsperOp();
+
+        if (esperOpObject instanceof DotExpression) {
+            DotExpression udfExp = (DotExpression) esperOpObject;
+
+            // there doesn't have to be a downstream operator from a udf
+            String tempEpl = "";
+            if (op.getStreamDestination().equals("")) {
+                tempEpl = String.format("SELECT * FROM %s", op.getStreamOrigin());
+            } else {
+                tempEpl = String.format("INSERT INTO %s SELECT * FROM %s",
+                        op.getStreamDestination(), op.getStreamOrigin());
+            }
+
+            // set the message bus
+            messageBus.setQueue(op.getStreamDestination());
+
+            // add to set all used streams - only if this is an initial input stream
+            if (streams.size() < 1) {
+                streams.add(op.getStreamOrigin());
+            }
+
+            // translate back to EPL
+            EPStatementObjectModel eplModel = epService.getEPAdministrator().compileEPL(tempEpl);
+
+            // set the match recognize clause here
+            SelectClause tempSelectClause = eplModel.getSelectClause();
+            List<SelectClauseElement> selectList = tempSelectClause.getSelectList();
+
+            // remove the pre-set
+            selectList.clear();
+
+            // create select
+            SelectClauseExpression selectExp = new SelectClauseExpression(udfExp);
+            selectList.add(selectExp);
+
+            // import all projects into the select clause
+            pushProjectsIntoEpl(selectList, op.getStreamDestination(), inputStreams);
+
+            config += eplModel.toEPL();
+        }
+
+        EsperStatement statement = new EsperStatement(config, messageBus);
+        statements.add(statement);
+
+        return config;
+    }
 }

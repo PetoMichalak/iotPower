@@ -12,8 +12,10 @@ public class NeoHandlerTest extends TestCase {
     public void setUp() throws Exception {
         super.setUp();
         String neoConnString = System.getProperty("neoconnectionstring");
+        String neoUser = System.getProperty("neousername");
+        String neoPass = System.getProperty("neopassword");
         if (neoConnString != null) {
-            neoHandler = new NeoHandler(neoConnString);
+            neoHandler = new NeoHandler(neoConnString, neoUser, neoPass);
         } else {
             logger.error("'neoconnectionstring' not supplied!");
             fail();

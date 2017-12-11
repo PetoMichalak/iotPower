@@ -93,6 +93,11 @@ public class EnergyImpactEvaluator {
                     // if the window is shorter than the window is win - 1 (minus one)
                     winLen = Integer.valueOf(op.getOperator());
                     bleActive = winLen > 10 ? 10 : winLen - 1;
+                } else {
+                    // a default streaming frequency will be used as no window is present - recalculate network cost
+                    InfrastructureNode placementNode = physicalPlan.getOpPlacementNode(op);
+                    opNetworkCost = placementNode.getDefaultNetworkFreq() * eiCoeffs.getCost(opNode.getResourceType(), "netCost", "") +
+                            numberOfMessages * eiCoeffs.getCost(downstreamOpNode.getResourceType(), "netCost", "");
                 }
                 opNetworkCost +=  bleActive * eiCoeffs.getCost(opNode.getResourceType(), "bleActive", "") +
                         bleActive * eiCoeffs.getCost(downstreamOpNode.getResourceType(), "bleActive", "");

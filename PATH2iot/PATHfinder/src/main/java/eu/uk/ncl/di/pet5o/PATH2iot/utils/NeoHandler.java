@@ -26,11 +26,11 @@ public class NeoHandler {
     /**
      * Establish bolt connection to the Neo4j database.
      */
-    public NeoHandler(String address) {
+    public NeoHandler(String address, String neoUser, String neoPass) {
         this.address = address;
         try {
             // Connect
-            con = DriverManager.getConnection("jdbc:neo4j:bolt://" + address);
+            con = DriverManager.getConnection("jdbc:neo4j:bolt://" + address, neoUser, neoPass);
             logger.debug("NEO4J connection established.");
         } catch (SQLException e) {
             logger.error("Problem with establishing connection: " + e.getMessage());
@@ -783,7 +783,7 @@ public class NeoHandler {
      */
     public InfrastructureNode getInfrastructureNodeById(Integer nodeId) {
         String query = String.format("MATCH (n:NODE) WHERE ID(n)=%d RETURN n.securityLevel, n.dataOut, n.energyImpact, " +
-                "n.disk, n.resourceId, n.cpu, n.monetaryCost, n.resourceType, n.ram, n.capabilities, ID(n) as id", nodeId);
+                "n.disk, n.resourceId, n.cpu, n.monetaryCost, n.resourceType, n.ram, n.capabilities, n.defaultNetworkFreq, ID(n) as id", nodeId);
         InfrastructureNode tempNode = new InfrastructureNode(nodeId);
         try (Statement stmt = con.createStatement()) {
             ResultSet rs = stmt.executeQuery(query);
@@ -838,6 +838,36 @@ public class NeoHandler {
             ResultSet rs = stmt.executeQuery(query);
             while (rs.next()) {
                 out.add(rs.getString("n."+returnField));
+            }
+            logger.debug("Query: " + query + " - executed.");
+        } catch (SQLException e) {
+            logger.error("Error executing query: " + query + "; error: " + e.getMessage());
+        }
+        return out;
+    }
+
+    /**
+     * Pulls neo4j with set of properties and returns a single value for each returned record.
+     * Matches ONLY outbound nodes
+     */
+    List<String> findOutboundNodesWithProperties(String label, Map<String, Object> keyPairs) {
+        List<String> out = new ArrayList<>();
+        String props = "";
+        for (String key : keyPairs.keySet()) {
+            if (keyPairs.get(key).getClass().equals(String.class)) {
+                props += String.format("%s:\"%s\", ", key, keyPairs.get(key));
+            } else {
+                props += String.format("%s:%d, ", key, keyPairs.get(key));
+            }
+        }
+        // strip the last comma
+        props = props.substring(0, props.length() - 2);
+
+        String query = String.format("MATCH (n:%s {%s}) WHERE ()-[]->(n) RETURN n.name, n.asName", label, props);
+        try (Statement stmt = con.createStatement()) {
+            ResultSet rs = stmt.executeQuery(query);
+            while (rs.next()) {
+                out.add(rs.getString("n.name") + "," + rs.getString("n.asName"));
             }
             logger.debug("Query: " + query + " - executed.");
         } catch (SQLException e) {

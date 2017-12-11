@@ -3,6 +3,7 @@ package eu.uk.ncl.di.pet5o.PATH2iot.infrastructure;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureDesc;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.infrastructure.InfrastructureNode;
 import eu.uk.ncl.di.pet5o.PATH2iot.input.network.ConnectionDesc;
+import eu.uk.ncl.di.pet5o.PATH2iot.operator.CompOperator;
 import eu.uk.ncl.di.pet5o.PATH2iot.utils.NeoHandler;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
@@ -83,7 +84,25 @@ public class InfrastructurePlan {
     }
 
 
-    public List<InfrastructureNode> getDownstreamNodes(InfrastructureNode node) {
+    /**
+     * Relies on internal records for the downstream infrastructure.
+     */
+    public List<InfrastructureNode> getDownstreamNodes(InfrastructureNode node, List<InfrastructureNode> downstreamNodes) {
+        // add all downstream nodes
+        for (Integer downstreamNodeId : node.getDownstreamNodes()) {
+            InfrastructureNode downstreamNode = getNodeById(downstreamNodeId);
+            downstreamNodes.add(downstreamNode);
+            getDownstreamNodes(downstreamNode, downstreamNodes);
+        }
+
+        return downstreamNodes;
+    }
+
+
+    /**
+     * Queries the neo db for all downstream nodes.
+     */
+    public List<InfrastructureNode> getDownstreamNodesNeo(InfrastructureNode node) {
         // examine downstream links, if not added already - add them
         List<InfrastructureNode> downstreamNodes = new ArrayList<>();
         // TODO this can be done internally - more comfy with neo CYPHER queries though.. plain lazy
@@ -133,5 +152,26 @@ public class InfrastructurePlan {
                 return true;
         }
         return false;
+    }
+
+    /**
+     * Traverse the current infrastructure plan and returns single intermediate operator in between
+     * node1 and node2.
+     */
+    public InfrastructureNode getIntermediateNode(InfrastructureNode node1, InfrastructureNode node2) {
+        InfrastructureNode intermediateNode = null;
+        // check all downstream operators of node1
+        for (Integer downstreamNodeId : node1.getDownstreamNodes()) {
+            // get intermediate node
+            InfrastructureNode tempNode = getNodeById(downstreamNodeId);
+
+            // if a downstream node point to the node2 return it
+            for (Integer tempDownId : tempNode.getDownstreamNodes()) {
+                if (tempDownId == node2.getNodeId())
+                    return tempNode;
+            }
+        }
+
+        return intermediateNode;
     }
 }

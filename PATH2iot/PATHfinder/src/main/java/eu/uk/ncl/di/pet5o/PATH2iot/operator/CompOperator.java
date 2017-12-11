@@ -213,5 +213,16 @@ public class CompOperator {
         }
         return false;
     }
+
+    /**
+     * Replaces the downstream operator oldOpId -> newOpId
+     */
+    public void replaceDownstreamOp(int oldOpId, int newOpId) {
+        // replace the operator
+        if(downstreamOpIds.contains(oldOpId)) {
+            downstreamOpIds.remove(new Integer(oldOpId));
+            downstreamOpIds.add(newOpId);
+        }
+    }
 }
 

@@ -13,6 +13,7 @@ public class UdfEntry {
     private int frequency;
     private int generationRatio;
     private double selectivityRatio;
+    private Boolean isSource;
     private String notes;
     private List<UdfSupportEntry> support;
 
@@ -82,5 +83,9 @@ public class UdfEntry {
 
     public void setSelectivityRatio(double selectivityRatio) {
         this.selectivityRatio = selectivityRatio;
+    }
+
+    public boolean isSource() {
+        return isSource;
     }
 }
