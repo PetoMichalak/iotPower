@@ -1,0 +1,12 @@
+# General
+resource_id=
+
+## 0 - not present & will monitor zookeeper for the input configuration
+## 1 - yes, ignore zookeeper and activate esper node from the provided config file
+local_epl=
+local_epl_path=
+
+# ZooKeeper
+ZOO_IP=
+ZOO_PORT=
+ZOO_APP_NODE=
